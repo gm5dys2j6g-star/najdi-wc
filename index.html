@@ -3,122 +3,161 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b7a5a">
 <title>Najdi WC 🚻</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f8;color:#17202a}
-header{padding:14px 16px;background:#fff;position:sticky;top:0;z-index:1000;border-bottom:1px solid #ddd}
-h1{margin:0 0 10px;font-size:25px}.search{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:14px;font-size:16px}
-.hint{font-size:12px;color:#69737d;margin-top:6px}.chips{display:flex;gap:8px;overflow:auto;padding-top:10px}
-.chip{border:0;background:#eef1f4;padding:9px 13px;border-radius:20px;white-space:nowrap}.chip.active{background:#17202a;color:#fff}
-#map{height:56vh;min-height:390px}.locate{position:absolute;right:14px;top:135px;z-index:900;border:0;border-radius:50%;width:48px;height:48px;background:#fff;box-shadow:0 3px 12px #0003;font-size:22px}
-.panel{background:#fff;border-radius:22px 22px 0 0;margin-top:-18px;position:relative;z-index:800;padding:16px;box-shadow:0 -3px 15px #0002}
-.nearest{width:100%;border:0;border-radius:16px;background:#0a84ff;color:#fff;font-size:18px;font-weight:700;padding:15px;margin-bottom:10px}
-.status{text-align:center;font-size:13px;color:#66717c;margin:4px 0 10px}.wc{border:1px solid #e1e5e9;border-radius:16px;padding:14px;margin:9px 0;background:#fff}
-.wc b{font-size:17px}.meta{font-size:13px;color:#66717c;margin-top:5px}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
-.badge{background:#eef7ee;border-radius:8px;padding:5px 7px;font-size:12px}.nav{position:sticky;bottom:0;background:#fff;border-top:1px solid #ddd;display:flex;justify-content:space-around;padding:10px 4px;z-index:1000}
-.nav button{border:0;background:none;font-size:12px;color:#4d5964}.nav span{display:block;font-size:21px;margin-bottom:2px}.empty{padding:25px;text-align:center;color:#68737d}
+:root{--green:#0b7a5a;--green2:#12a274;--bg:#f3f7f5;--text:#16221e;--muted:#71807a;--card:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:linear-gradient(135deg,#086b4f,#12a274);color:#fff;padding:16px 16px 18px;position:sticky;top:0;z-index:1000}
+.brand{display:flex;align-items:center;gap:10px}.logo{font-size:32px}.brand h1{margin:0;font-size:25px}.sub{font-size:12px;opacity:.88;margin:2px 0 12px 42px}
+.search{width:100%;padding:13px 15px;border:0;border-radius:15px;font-size:16px;box-shadow:0 3px 14px #0002}
+.hint{font-size:12px;margin-top:7px;opacity:.85}.chips{display:flex;gap:7px;overflow:auto;margin-top:10px}
+.chip{border:0;background:#ffffff2e;color:#fff;padding:8px 12px;border-radius:20px;white-space:nowrap}.chip.active{background:#fff;color:var(--green)}
+#map{height:52vh;min-height:360px}.locate{position:absolute;right:14px;top:145px;z-index:900;width:48px;height:48px;border:0;border-radius:50%;background:#fff;box-shadow:0 4px 15px #0003;font-size:22px}
+.panel{background:var(--bg);border-radius:24px 24px 0 0;margin-top:-20px;position:relative;z-index:800;padding:15px 14px 80px}
+.nearest{width:100%;border:0;border-radius:17px;background:var(--green);color:#fff;font-size:17px;font-weight:800;padding:16px;box-shadow:0 6px 18px #0b7a5a44}
+.status{text-align:center;font-size:12px;color:var(--muted);margin:10px 0}
+.wc{background:var(--card);border-radius:17px;padding:14px;margin:9px 0;box-shadow:0 2px 9px #0000000b;border:1px solid #e5ece8}
+.wc b{font-size:17px}.meta{font-size:13px;color:var(--muted);margin-top:5px}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.badge{background:#eaf7f2;color:#176b53;border-radius:8px;padding:5px 7px;font-size:12px}
+.actions{display:flex;gap:7px;margin-top:11px}.actions button{flex:1;border:0;border-radius:11px;padding:9px;font-weight:700}
+.navbtn{background:#e9f2ef;color:var(--green)}.mapbtn{background:#e9f2ef}.empty{text-align:center;padding:28px;color:var(--muted)}
+.nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dde5e1;display:flex;justify-content:space-around;padding:8px 4px max(8px,env(safe-area-inset-bottom));z-index:1100}
+.nav button{border:0;background:none;color:#68766f;font-size:11px}.nav button.active{color:var(--green);font-weight:700}.nav span{display:block;font-size:21px}
+.modal{display:none;position:fixed;inset:0;background:#0007;z-index:2000;align-items:flex-end}.modal.show{display:flex}
+.sheet{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:18px 16px max(18px,env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet h2{margin:0 0 12px}.option{width:100%;padding:14px;margin:7px 0;border:1px solid #dfe7e3;background:#f7faf9;border-radius:14px;text-align:left;font-size:16px}
+.close{width:100%;border:0;background:#eee;padding:13px;border-radius:13px;margin-top:7px;font-weight:700}
+.form input,.form select{width:100%;padding:12px;border:1px solid #d8e1dd;border-radius:12px;margin:6px 0 10px;font-size:16px}
+.form label{font-size:13px;font-weight:700}.save{width:100%;padding:14px;border:0;border-radius:13px;background:var(--green);color:#fff;font-weight:800;font-size:16px}
+.check{display:flex;gap:8px;align-items:center;margin:7px 0;font-size:14px}
 </style>
 </head>
 <body>
-<header><h1>🚻 Najdi WC</h1>
-<input id="search" class="search" placeholder="Hledat město, adresu nebo WC…">
-<div class="hint">🌍 Živá data veřejných WC z OpenStreetMap</div>
-<div class="chips">
-<button class="chip active" data-filter="all">Vše</button><button class="chip" data-filter="free">Zdarma</button>
-<button class="chip" data-filter="open">Otevřeno</button><button class="chip" data-filter="accessible">Bezbariérové</button>
-</div></header>
+<header>
+  <div class="brand"><div class="logo">🚻</div><div><h1>Najdi WC</h1></div></div>
+  <div class="sub">Veřejná WC ve tvém okolí</div>
+  <input id="search" class="search" placeholder="🔎 Město, adresa nebo místo…">
+  <div class="hint">🌍 Data OpenStreetMap + WC přidaná v tomto zařízení</div>
+  <div class="chips">
+    <button class="chip active" data-filter="all">Vše</button>
+    <button class="chip" data-filter="free">Zdarma</button>
+    <button class="chip" data-filter="open">Otevřeno</button>
+    <button class="chip" data-filter="accessible">♿ Bezbariérové</button>
+  </div>
+</header>
+
 <div id="map"></div><button class="locate" id="locate">📍</button>
-<section class="panel"><button class="nearest" id="nearest">🚻 NAJÍT NEJBLIŽŠÍ WC</button>
-<div id="status" class="status">Načítám veřejná WC…</div><div id="list"></div></section>
-<nav class="nav"><button onclick="window.scrollTo({top:0,behavior:'smooth'})"><span>🗺️</span>Mapa</button>
-<button onclick="document.getElementById('list').scrollIntoView({behavior:'smooth'})"><span>📋</span>Seznam</button>
-<button onclick="alert('Přidání WC bude v další verzi.')"><span>➕</span>Přidat WC</button>
-<button onclick="alert('Oblíbené WC budou v další verzi.')"><span>⭐</span>Oblíbené</button></nav>
+
+<section class="panel">
+  <button class="nearest" id="nearest">🚻 NAJÍT NEJBLIŽŠÍ WC</button>
+  <div id="status" class="status">📍 Zjišťuji tvoji polohu…</div>
+  <div id="list"></div>
+</section>
+
+<nav class="nav">
+  <button class="active" onclick="scrollToTop()"><span>🗺️</span>Mapa</button>
+  <button onclick="document.getElementById('list').scrollIntoView({behavior:'smooth'})"><span>📋</span>Seznam</button>
+  <button onclick="openAdd()"><span>➕</span>Přidat WC</button>
+  <button onclick="showFavorites()"><span>⭐</span>Oblíbené</button>
+</nav>
+
+<div class="modal" id="navModal"><div class="sheet">
+  <h2>🧭 Jakou navigaci použít?</h2>
+  <button class="option" id="appleNav">🍎 Apple Mapy</button>
+  <button class="option" id="googleNav">🗺️ Google Maps</button>
+  <button class="option" id="wazeNav">🚙 Waze</button>
+  <button class="close" onclick="closeModal('navModal')">Zrušit</button>
+</div></div>
+
+<div class="modal" id="addModal"><div class="sheet">
+  <h2>➕ Přidat nové WC</h2>
+  <div class="form">
+    <label>Název</label><input id="addName" placeholder="Např. WC u nádraží">
+    <label>Poloha</label><div style="display:flex;gap:7px"><input id="addLat" placeholder="GPS šířka"><input id="addLon" placeholder="GPS délka"></div>
+    <button class="option" onclick="useMyPosition()">📍 Použít moji polohu</button>
+    <label>Popis</label><input id="addDesc" placeholder="Např. uvnitř budovy">
+    <label>Typ</label><select id="addAccess"><option value="free">Zdarma</option><option value="paid">Placené</option></select>
+    <label class="check"><input type="checkbox" id="addAccessible"> ♿ Bezbariérové</label>
+    <label class="check"><input type="checkbox" id="addChanging"> 👶 Přebalovací pult</label>
+    <button class="save" onclick="saveNewWC()">Uložit WC do mapy</button>
+    <button class="close" onclick="closeModal('addModal')">Zrušit</button>
+  </div>
+</div></div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const OVERPASS=[
 'https://overpass-api.de/api/interpreter',
 'https://overpass.kumi.systems/api/interpreter',
-'https://overpass.private.coffee/api/interpreter',
-'https://overpass.nchc.org.tw/api/interpreter'
+'https://overpass.private.coffee/api/interpreter'
 ];
 let map=L.map('map').setView([49.8175,15.4730],7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
-let markers=[],userMarker=null,filter='all',toilets=[],loading=false,lastBox='',timer=null;
+let markers=[],userMarker=null,toilets=[],filter='all',lastBox='',loading=false,navTarget=null,timer=null;
+
+function esc(s){return String(s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function dist(a,b,c,d){const R=6371,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,z=Math.sin(x/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(z),Math.sqrt(1-z))}
-function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function position(e){return e.type==='node'?{lat:e.lat,lon:e.lon}:{lat:e.center&&e.center.lat,lon:e.center&&e.center.lon}}
-function normalize(e){const p=position(e);if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return null;const t=e.tags||{},a=(t.access||'').toLowerCase(),f=(t.fee||'').toLowerCase();let free=!['customers','no'].includes(a);if(f==='yes'||f==='true')free=false;if(f==='no'||f==='false')free=true;return{id:e.type+'-'+e.id,lat:p.lat,lon:p.lon,name:t.name||t['name:cs']||t['name:en']||'Veřejné WC',free,open:true,accessible:['yes','designated','permissive'].includes((t.wheelchair||'').toLowerCase()),change:['yes','designated'].includes((t.changing_table||'').toLowerCase()),hours:t.opening_hours||'Neuvedeno'}}
-function bbox(){const b=map.getBounds();return[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(',')}
+function position(e){return e.type==='node'?{lat:e.lat,lon:e.lon}:{lat:e.center?.lat,lon:e.center?.lon}}
+function normalize(e){const p=position(e);if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return null;const t=e.tags||{},fee=(t.fee||'').toLowerCase();return{id:'osm-'+e.type+'-'+e.id,lat:p.lat,lon:p.lon,name:t.name||t['name:cs']||t['name:en']||'Veřejné WC',free:!['yes','true'].includes(fee),open:true,accessible:['yes','designated','permissive'].includes((t.wheelchair||'').toLowerCase()),change:['yes','designated'].includes((t.changing_table||'').toLowerCase()),hours:t.opening_hours||'Neuvedeno',source:'OSM'}}
+function loadLocal(){try{return JSON.parse(localStorage.getItem('najdiWC_custom')||'[]')}catch(e){return[]}}
+function allWC(){return [...toilets.filter(t=>t.source==='OSM'),...loadLocal()]}
 async function requestOverpass(q){
   let last;
   for(const url of OVERPASS){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),12000);
-    try{
-      const r=await fetch(url+'?data='+encodeURIComponent(q),{
-        method:'GET',
-        headers:{Accept:'application/json'},
-        signal:controller.signal,
-        cache:'no-store'
-      });
-      if(!r.ok)throw Error('HTTP '+r.status);
-      return await r.json();
-    }catch(e){
-      last=e&&e.name==='AbortError'?Error('timeout'):e;
-    }finally{clearTimeout(timer)}
+    const c=new AbortController(),tm=setTimeout(()=>c.abort(),10000);
+    try{const r=await fetch(url+'?data='+encodeURIComponent(q),{headers:{Accept:'application/json'},signal:c.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}
+    catch(e){last=e}finally{clearTimeout(tm)}
   }
-  throw last||Error('Overpass nedostupný');
+  throw last||Error('Overpass nedostupný')
 }
-async function loadWC(force=false){if(loading)return;if(map.getZoom()<11){document.getElementById('status').textContent='Přibliž mapu na oblast, kde chceš WC hledat.';return}const box=bbox();if(!force&&box===lastBox)return;loading=true;document.getElementById('status').textContent='🔎 Hledám veřejná WC…';const q=`[out:json][timeout:40];(nwr["amenity"="toilets"](${box});nwr["building"="toilets"](${box}););out center tags;`;try{const data=await requestOverpass(q);toilets=(data.elements||[]).map(normalize).filter(Boolean);lastBox=box;render();document.getElementById('status').textContent=`🌍 Nalezeno ${toilets.length} WC v zobrazené oblasti · OpenStreetMap`}catch(e){console.error(e);document.getElementById('status').innerHTML='⚠️ WC se nepodařilo načíst.<br><button onclick="lastBox=\'\';loadWC(true)" style="margin-top:8px;padding:8px 14px;border:0;border-radius:10px;background:#0a84ff;color:white">🔄 Zkusit znovu</button><br><small>Technická chyba: '+(e&&e.message?e.message:'neznámá chyba')+'</small>'}finally{loading=false}}
-function render(){markers.forEach(m=>m.remove());markers=[];const q=document.getElementById('search').value.toLowerCase().trim(),arr=toilets.filter(t=>(!q||t.name.toLowerCase().includes(q))&&(filter==='all'||filter==='free'&&t.free||filter==='open'&&t.open||filter==='accessible'&&t.accessible));arr.forEach(t=>markers.push(L.marker([t.lat,t.lon]).addTo(map).bindPopup(`<b>${esc(t.name)}</b><br>${t.free?'✓ Zdarma':'💳 Placené'} · 🕐 ${esc(t.hours)}${t.accessible?'<br>♿ Bezbariérové':''}`)));document.getElementById('list').innerHTML=arr.length?arr.map(t=>`<article class="wc" onclick="focusWC(${t.lat},${t.lon})"><b>${esc(t.name)}</b><div class="meta">🕐 ${esc(t.hours)}</div><div class="badges"><span class="badge">${t.free?'✓ Zdarma':'💳 Placené'}</span>${t.accessible?'<span class="badge">♿ Bezbariérové</span>':''}${t.change?'<span class="badge">👶 Přebalovací pult</span>':''}</div></article>`).join(''):'<div class="empty">V této oblasti nejsou podle aktuálních OSM dat nalezena WC.</div>'}
-function focusWC(lat,lon){map.setView([lat,lon],17);const m=markers.find(x=>Math.abs(x.getLatLng().lat-lat)<1e-8&&Math.abs(x.getLatLng().lng-lon)<1e-8);if(m)m.openPopup()}
-function nearestFrom(lat,lon){if(!toilets.length){map.setView([lat,lon],15);lastBox='';loadWC(true).then(()=>setTimeout(()=>nearestFrom(lat,lon),800));return}const t=toilets.slice().sort((a,b)=>dist(lat,lon,a.lat,a.lon)-dist(lat,lon,b.lat,b.lon))[0],meters=Math.round(dist(lat,lon,t.lat,t.lon)*1000);focusWC(t.lat,t.lon);if(confirm(`Nejbližší WC: ${t.name}\nVzdálenost přibližně ${meters} m.\n\nOtevřít navigaci?`))window.open(`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lon}`,'_blank')}
-async function searchPlace(){
-  const q=document.getElementById('search').value.trim();
-  if(!q){loadWC(true);return}
+function bbox(){const b=map.getBounds();return[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(',')}
+async function loadWC(force=false){
+  if(loading||map.getZoom()<11){if(map.getZoom()<11)document.getElementById('status').textContent='🔎 Přibliž mapu a vyber oblast.';return}
+  const box=bbox();if(!force&&box===lastBox)return;
+  loading=true;document.getElementById('status').textContent='🔎 Hledám veřejná WC…';
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`,{
-      headers:{Accept:'application/json'},cache:'no-store'
-    });
-    const a=await r.json();
-    if(!a.length){
-      document.getElementById('status').textContent='Místo nebylo nalezeno.';
-      return;
-    }
-    map.setView([+a[0].lat,+a[0].lon],14);
-    lastBox='';
-    // The search field is for finding a place, not filtering WC names.
-    document.getElementById('search').value='';
-    render();
-    loadWC(true);
-  }catch(e){
-    document.getElementById('status').textContent='Vyhledávání se nepodařilo: '+(e&&e.message?e.message:'chyba');
-  }
+    const q=`[out:json][timeout:35];(nwr["amenity"="toilets"](${box});nwr["building"="toilets"](${box}););out center tags;`;
+    const data=await requestOverpass(q);
+    toilets=(data.elements||[]).map(normalize).filter(Boolean);lastBox=box;render();
+    document.getElementById('status').textContent=`🌍 Nalezeno ${allWC().length} WC v zobrazené oblasti`;
+  }catch(e){document.getElementById('status').innerHTML='⚠️ Data WC se nepodařilo načíst. <button onclick="lastBox=\'\';loadWC(true)" style="border:0;border-radius:9px;padding:7px">🔄 Znovu</button>'}
+  finally{loading=false}
 }
-document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
-document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});document.getElementById('search').addEventListener('input',render);
-document.getElementById('locate').onclick=()=>{if(!navigator.geolocation)return alert('Tento prohlížeč nepodporuje GPS.');navigator.geolocation.getCurrentPosition(p=>{const{latitude,longitude}=p.coords;map.setView([latitude,longitude],15);if(userMarker)userMarker.remove();userMarker=L.marker([latitude,longitude]).addTo(map).bindPopup('Tvoje poloha').openPopup();lastBox='';loadWC(true)},()=>alert('Poloha není dostupná. Povol v telefonu přístup k poloze.'))};
-document.getElementById('nearest').onclick=()=>{if(!navigator.geolocation)return alert('Tento prohlížeč nepodporuje GPS.');navigator.geolocation.getCurrentPosition(p=>nearestFrom(p.coords.latitude,p.coords.longitude),()=>alert('Poloha není dostupná. Povol v telefonu přístup k poloze.'))};
-map.on('moveend',()=>{clearTimeout(timer);timer=setTimeout(()=>loadWC(false),600)});
+function render(){
+  markers.forEach(m=>m.remove());markers=[];
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const arr=allWC().filter(t=>(!q||t.name.toLowerCase().includes(q))&&(filter==='all'||filter==='free'&&t.free||filter==='open'&&t.open||filter==='accessible'&&t.accessible));
+  arr.forEach(t=>markers.push(L.marker([t.lat,t.lon]).addTo(map).bindPopup(`<b>${esc(t.name)}</b><br>${t.free?'✓ Zdarma':'💳 Placené'} · 🕐 ${esc(t.hours)}<br><button onclick="openNavigation(${t.lat},${t.lon},'${esc(t.name).replace(/'/g,"\\'")}')" style="margin-top:8px;padding:8px 12px;border:0;border-radius:9px;background:#0b7a5a;color:#fff">🧭 Navigovat</button>`)));
+  document.getElementById('list').innerHTML=arr.length?arr.map(t=>`<article class="wc"><b>${esc(t.name)}</b><div class="meta">🕐 ${esc(t.hours)}${t.desc?' · '+esc(t.desc):''}</div><div class="badges"><span class="badge">${t.free?'✓ Zdarma':'💳 Placené'}</span>${t.accessible?'<span class="badge">♿ Bezbariérové</span>':''}${t.change?'<span class="badge">👶 Přebalovací pult</span>':''}</div><div class="actions"><button class="mapbtn" onclick="focusWC(${t.lat},${t.lon})">📍 Zobrazit</button><button class="navbtn" onclick="openNavigation(${t.lat},${t.lon},'${esc(t.name).replace(/'/g,"\\'")}')">🧭 Navigovat</button></div></article>`).join(''):'<div class="empty">V této oblasti nejsou podle aktuálních dat nalezena WC.</div>';
+}
+function focusWC(lat,lon){map.setView([lat,lon],17)}
+function openNavigation(lat,lon,name){navTarget={lat,lon,name};document.getElementById('navModal').classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function go(url){closeModal('navModal');window.open(url,'_blank')}
+document.getElementById('appleNav').onclick=()=>go(`https://maps.apple.com/?daddr=${navTarget.lat},${navTarget.lon}&dirflg=w`);
+document.getElementById('googleNav').onclick=()=>go(`https://www.google.com/maps/dir/?api=1&destination=${navTarget.lat},${navTarget.lon}&travelmode=walking`);
+document.getElementById('wazeNav').onclick=()=>go(`https://www.waze.com/ul?ll=${navTarget.lat},${navTarget.lon}&navigate=yes`);
 
-function startApp(){
-  document.getElementById('status').textContent='📍 Zjišťuji tvoji polohu…';
-  if(!navigator.geolocation){
-    document.getElementById('status').textContent='📍 Povol polohu nebo vyhledej město.';
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(p=>{
-    const {latitude,longitude}=p.coords;
-    map.setView([latitude,longitude],15);
-    if(userMarker)userMarker.remove();
-    userMarker=L.marker([latitude,longitude]).addTo(map).bindPopup('Tvoje poloha');
-    lastBox='';
-    loadWC(true);
-  },()=>{
-    document.getElementById('status').textContent='📍 Poloha není dostupná. Vyhledej město nebo adresu nahoře.';
-  },{enableHighAccuracy:true,timeout:10000,maximumAge:300000});
-}
-startApp();
-</script></body></html>
+function useMyPosition(){navigator.geolocation?.getCurrentPosition(p=>{addLat.value=p.coords.latitude;addLon.value=p.coords.longitude;map.setView([p.coords.latitude,p.coords.longitude],17)},()=>alert('Poloha není dostupná.'))}
+function openAdd(){document.getElementById('addModal').classList.add('show');useMyPosition()}
+function saveNewWC(){
+  const name=document.getElementById('addName').value.trim()||'Nové WC';
+  const lat=parseFloat(document.getElementById('addLat').value),lon=parseFloat(document.getElementById('addLon').value);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){alert('Zadej platnou polohu.');return}
+  const item={id:'local-'+Date.now(),lat,lon,name,desc:document.getElementById('addDesc').value.trim(),free:addAccess.value==='free',open:true,accessible:addAccessible.checked,change:addChanging.checked,hours:'Neuvedeno',source:'local'};
+  const a=loadLocal();a.push(item);localStorage.setItem('najdiWC_custom',JSON.stringify(a));closeModal('addModal');render();map.setView([lat,lon],17);alert('WC bylo přidáno do mapy tohoto zařízení.')}
+function showFavorites(){alert('Oblíbené připravíme v další verzi.')}
+function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'})}
+
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
+document.getElementById('search').addEventListener('keydown',async e=>{if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q)return;try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}}),a=await r.json();if(!a.length){alert('Místo nebylo nalezeno.');return}map.setView([+a[0].lat,+a[0].lon],14);e.target.value='';lastBox='';loadWC(true)}catch(err){alert('Vyhledávání se nepodařilo.')}});
+document.getElementById('locate').onclick=()=>navigator.geolocation?.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],15);if(userMarker)userMarker.remove();userMarker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map).bindPopup('Tvoje poloha').openPopup();lastBox='';loadWC(true)},()=>alert('Povol přístup k poloze.'));
+document.getElementById('nearest').onclick=()=>navigator.geolocation?.getCurrentPosition(p=>{const a=allWC();if(!a.length){map.setView([p.coords.latitude,p.coords.longitude],15);lastBox='';loadWC(true);return}const t=a.sort((x,y)=>dist(p.coords.latitude,p.coords.longitude,x.lat,x.lon)-dist(p.coords.latitude,p.coords.longitude,y.lat,y.lon))[0];focusWC(t.lat,t.lon);openNavigation(t.lat,t.lon,t.name)},()=>alert('Povol přístup k poloze.'));
+map.on('moveend',()=>{clearTimeout(timer);timer=setTimeout(()=>loadWC(false),700)});
+navigator.geolocation?.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],15);userMarker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map).bindPopup('Tvoje poloha');loadWC(true)},()=>{document.getElementById('status').textContent='📍 Vyhledej město nebo adresu nahoře.'},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});
+render();
+</script>
+</body>
+</html>
