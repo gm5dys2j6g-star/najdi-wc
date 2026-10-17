@@ -39,7 +39,7 @@ header{background:linear-gradient(135deg,#086b4f,#12a274);color:#fff;padding:16p
   <div class="brand"><div class="logo">🚻</div><div><h1>Najdi WC</h1></div></div>
   <div class="sub">Veřejná WC ve tvém okolí</div>
   <input id="search" class="search" placeholder="🔎 Město, adresa nebo místo…">
-  <div class="hint">🌍 Data OpenStreetMap + WC přidaná v tomto zařízení</div>
+  <div class="hint">🌍 OpenStreetMap + WC přidaná v tomto zařízení · automatické načtení oblasti</div>
   <div class="chips">
     <button class="chip active" data-filter="all">Vše</button>
     <button class="chip" data-filter="free">Zdarma</button>
@@ -104,13 +104,30 @@ function normalize(e){const p=position(e);if(!p||!Number.isFinite(p.lat)||!Numbe
 function loadLocal(){try{return JSON.parse(localStorage.getItem('najdiWC_custom')||'[]')}catch(e){return[]}}
 function allWC(){return [...toilets.filter(t=>t.source==='OSM'),...loadLocal()]}
 async function requestOverpass(q){
+  const direct=OVERPASS.map(u=>u+'?data='+encodeURIComponent(q));
+  const proxyTargets=[
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(direct[0]),
+    'https://corsproxy.io/?url='+encodeURIComponent(direct[0])
+  ];
+  const urls=[...direct,...proxyTargets];
   let last;
-  for(const url of OVERPASS){
-    const c=new AbortController(),tm=setTimeout(()=>c.abort(),10000);
-    try{const r=await fetch(url+'?data='+encodeURIComponent(q),{headers:{Accept:'application/json'},signal:c.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}
-    catch(e){last=e}finally{clearTimeout(tm)}
+  for(const url of urls){
+    const c=new AbortController(),tm=setTimeout(()=>c.abort(),15000);
+    try{
+      const r=await fetch(url,{signal:c.signal,cache:'no-store'});
+      if(!r.ok)throw Error('HTTP '+r.status);
+      const text=await r.text();
+      let data;
+      try{data=JSON.parse(text)}catch(e){
+        const m=text.match(/\{[\s\S]*\}/);
+        if(!m)throw Error('Neplatná odpověď');
+        data=JSON.parse(m[0]);
+      }
+      if(!data||!Array.isArray(data.elements))throw Error('Neplatná data WC');
+      return data;
+    }catch(e){last=e}finally{clearTimeout(tm)}
   }
-  throw last||Error('Overpass nedostupný')
+  throw last||Error('Databáze WC je dočasně nedostupná')
 }
 function bbox(){const b=map.getBounds();return[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(',')}
 async function loadWC(force=false){
