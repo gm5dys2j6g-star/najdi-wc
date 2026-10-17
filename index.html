@@ -43,7 +43,7 @@ const OVERPASS=[
 'https://overpass.private.coffee/api/interpreter',
 'https://overpass.nchc.org.tw/api/interpreter'
 ];
-let map=L.map('map').setView([50.089,17.703],14);
+let map=L.map('map').setView([49.8175,15.4730],7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
 let markers=[],userMarker=null,filter='all',toilets=[],loading=false,lastBox='',timer=null;
 function dist(a,b,c,d){const R=6371,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,z=Math.sin(x/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(z),Math.sqrt(1-z))}
@@ -101,5 +101,24 @@ document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelec
 document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});document.getElementById('search').addEventListener('input',render);
 document.getElementById('locate').onclick=()=>{if(!navigator.geolocation)return alert('Tento prohlížeč nepodporuje GPS.');navigator.geolocation.getCurrentPosition(p=>{const{latitude,longitude}=p.coords;map.setView([latitude,longitude],15);if(userMarker)userMarker.remove();userMarker=L.marker([latitude,longitude]).addTo(map).bindPopup('Tvoje poloha').openPopup();lastBox='';loadWC(true)},()=>alert('Poloha není dostupná. Povol v telefonu přístup k poloze.'))};
 document.getElementById('nearest').onclick=()=>{if(!navigator.geolocation)return alert('Tento prohlížeč nepodporuje GPS.');navigator.geolocation.getCurrentPosition(p=>nearestFrom(p.coords.latitude,p.coords.longitude),()=>alert('Poloha není dostupná. Povol v telefonu přístup k poloze.'))};
-map.on('moveend',()=>{clearTimeout(timer);timer=setTimeout(()=>loadWC(false),600)});loadWC(true);
+map.on('moveend',()=>{clearTimeout(timer);timer=setTimeout(()=>loadWC(false),600)});
+
+function startApp(){
+  document.getElementById('status').textContent='📍 Zjišťuji tvoji polohu…';
+  if(!navigator.geolocation){
+    document.getElementById('status').textContent='📍 Povol polohu nebo vyhledej město.';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(p=>{
+    const {latitude,longitude}=p.coords;
+    map.setView([latitude,longitude],15);
+    if(userMarker)userMarker.remove();
+    userMarker=L.marker([latitude,longitude]).addTo(map).bindPopup('Tvoje poloha');
+    lastBox='';
+    loadWC(true);
+  },()=>{
+    document.getElementById('status').textContent='📍 Poloha není dostupná. Vyhledej město nebo adresu nahoře.';
+  },{enableHighAccuracy:true,timeout:10000,maximumAge:300000});
+}
+startApp();
 </script></body></html>
