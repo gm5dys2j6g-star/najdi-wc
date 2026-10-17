@@ -51,12 +51,52 @@ function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 function position(e){return e.type==='node'?{lat:e.lat,lon:e.lon}:{lat:e.center&&e.center.lat,lon:e.center&&e.center.lon}}
 function normalize(e){const p=position(e);if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return null;const t=e.tags||{},a=(t.access||'').toLowerCase(),f=(t.fee||'').toLowerCase();let free=!['customers','no'].includes(a);if(f==='yes'||f==='true')free=false;if(f==='no'||f==='false')free=true;return{id:e.type+'-'+e.id,lat:p.lat,lon:p.lon,name:t.name||t['name:cs']||t['name:en']||'Veřejné WC',free,open:true,accessible:['yes','designated','permissive'].includes((t.wheelchair||'').toLowerCase()),change:['yes','designated'].includes((t.changing_table||'').toLowerCase()),hours:t.opening_hours||'Neuvedeno'}}
 function bbox(){const b=map.getBounds();return[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(',')}
-async function requestOverpass(q){let last;for(const url of OVERPASS){try{const r=await fetch(url+'?data='+encodeURIComponent(q),{headers:{Accept:'application/json'}});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}catch(e){last=e}}throw last||Error('Overpass nedostupný')}
-async function loadWC(force=false){if(loading)return;if(map.getZoom()<11){document.getElementById('status').textContent='Přibliž mapu na oblast, kde chceš WC hledat.';return}const box=bbox();if(!force&&box===lastBox)return;loading=true;document.getElementById('status').textContent='🔎 Hledám veřejná WC…';const q=`[out:json][timeout:40];(nwr["amenity"="toilets"](${box});nwr["building"="toilets"](${box}););out center tags;`;try{const data=await requestOverpass(q);toilets=(data.elements||[]).map(normalize).filter(Boolean);lastBox=box;render();document.getElementById('status').textContent=`🌍 Nalezeno ${toilets.length} WC v zobrazené oblasti · OpenStreetMap`}catch(e){console.error(e);document.getElementById('status').textContent='⚠️ WC se nepodařilo načíst. Zkontroluj připojení a zkus mapu posunout. Technická chyba: '+(e&&e.message?e.message:'neznámá chyba')}finally{loading=false}}
+async function requestOverpass(q){
+  let last;
+  for(const url of OVERPASS){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),12000);
+    try{
+      const r=await fetch(url+'?data='+encodeURIComponent(q),{
+        method:'GET',
+        headers:{Accept:'application/json'},
+        signal:controller.signal,
+        cache:'no-store'
+      });
+      if(!r.ok)throw Error('HTTP '+r.status);
+      return await r.json();
+    }catch(e){
+      last=e&&e.name==='AbortError'?Error('timeout'):e;
+    }finally{clearTimeout(timer)}
+  }
+  throw last||Error('Overpass nedostupný');
+}
+async function loadWC(force=false){if(loading)return;if(map.getZoom()<11){document.getElementById('status').textContent='Přibliž mapu na oblast, kde chceš WC hledat.';return}const box=bbox();if(!force&&box===lastBox)return;loading=true;document.getElementById('status').textContent='🔎 Hledám veřejná WC…';const q=`[out:json][timeout:40];(nwr["amenity"="toilets"](${box});nwr["building"="toilets"](${box}););out center tags;`;try{const data=await requestOverpass(q);toilets=(data.elements||[]).map(normalize).filter(Boolean);lastBox=box;render();document.getElementById('status').textContent=`🌍 Nalezeno ${toilets.length} WC v zobrazené oblasti · OpenStreetMap`}catch(e){console.error(e);document.getElementById('status').innerHTML='⚠️ WC se nepodařilo načíst.<br><button onclick="lastBox=\'\';loadWC(true)" style="margin-top:8px;padding:8px 14px;border:0;border-radius:10px;background:#0a84ff;color:white">🔄 Zkusit znovu</button><br><small>Technická chyba: '+(e&&e.message?e.message:'neznámá chyba')+'</small>'}finally{loading=false}}
 function render(){markers.forEach(m=>m.remove());markers=[];const q=document.getElementById('search').value.toLowerCase().trim(),arr=toilets.filter(t=>(!q||t.name.toLowerCase().includes(q))&&(filter==='all'||filter==='free'&&t.free||filter==='open'&&t.open||filter==='accessible'&&t.accessible));arr.forEach(t=>markers.push(L.marker([t.lat,t.lon]).addTo(map).bindPopup(`<b>${esc(t.name)}</b><br>${t.free?'✓ Zdarma':'💳 Placené'} · 🕐 ${esc(t.hours)}${t.accessible?'<br>♿ Bezbariérové':''}`)));document.getElementById('list').innerHTML=arr.length?arr.map(t=>`<article class="wc" onclick="focusWC(${t.lat},${t.lon})"><b>${esc(t.name)}</b><div class="meta">🕐 ${esc(t.hours)}</div><div class="badges"><span class="badge">${t.free?'✓ Zdarma':'💳 Placené'}</span>${t.accessible?'<span class="badge">♿ Bezbariérové</span>':''}${t.change?'<span class="badge">👶 Přebalovací pult</span>':''}</div></article>`).join(''):'<div class="empty">V této oblasti nejsou podle aktuálních OSM dat nalezena WC.</div>'}
 function focusWC(lat,lon){map.setView([lat,lon],17);const m=markers.find(x=>Math.abs(x.getLatLng().lat-lat)<1e-8&&Math.abs(x.getLatLng().lng-lon)<1e-8);if(m)m.openPopup()}
 function nearestFrom(lat,lon){if(!toilets.length){map.setView([lat,lon],15);lastBox='';loadWC(true).then(()=>setTimeout(()=>nearestFrom(lat,lon),800));return}const t=toilets.slice().sort((a,b)=>dist(lat,lon,a.lat,a.lon)-dist(lat,lon,b.lat,b.lon))[0],meters=Math.round(dist(lat,lon,t.lat,t.lon)*1000);focusWC(t.lat,t.lon);if(confirm(`Nejbližší WC: ${t.name}\nVzdálenost přibližně ${meters} m.\n\nOtevřít navigaci?`))window.open(`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lon}`,'_blank')}
-async function searchPlace(){const q=document.getElementById('search').value.trim();if(!q){loadWC(true);return}try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}}),a=await r.json();if(!a.length){document.getElementById('status').textContent='Místo nebylo nalezeno.';return}map.setView([+a[0].lat,+a[0].lon],14);lastBox='';loadWC(true)}catch(e){document.getElementById('status').textContent='Vyhledávání se nepodařilo.'}}
+async function searchPlace(){
+  const q=document.getElementById('search').value.trim();
+  if(!q){loadWC(true);return}
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`,{
+      headers:{Accept:'application/json'},cache:'no-store'
+    });
+    const a=await r.json();
+    if(!a.length){
+      document.getElementById('status').textContent='Místo nebylo nalezeno.';
+      return;
+    }
+    map.setView([+a[0].lat,+a[0].lon],14);
+    lastBox='';
+    // The search field is for finding a place, not filtering WC names.
+    document.getElementById('search').value='';
+    render();
+    loadWC(true);
+  }catch(e){
+    document.getElementById('status').textContent='Vyhledávání se nepodařilo: '+(e&&e.message?e.message:'chyba');
+  }
+}
 document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
 document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace()});document.getElementById('search').addEventListener('input',render);
 document.getElementById('locate').onclick=()=>{if(!navigator.geolocation)return alert('Tento prohlížeč nepodporuje GPS.');navigator.geolocation.getCurrentPosition(p=>{const{latitude,longitude}=p.coords;map.setView([latitude,longitude],15);if(userMarker)userMarker.remove();userMarker=L.marker([latitude,longitude]).addTo(map).bindPopup('Tvoje poloha').openPopup();lastBox='';loadWC(true)},()=>alert('Poloha není dostupná. Povol v telefonu přístup k poloze.'))};
